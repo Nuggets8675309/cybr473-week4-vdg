@@ -2,6 +2,11 @@
 
 Scripting Assignment #4 - Searching for Digital Images with Python
 
+Virgilio D. Garcia Estuesta
+University of Arizona
+CYBR 476 Violent Python FA26 204/206
+Rodolfo Madero
+September 20, 2026
 
 ---
 
@@ -53,11 +58,11 @@ Your script will:
 +---------------------------------------+-----------------------+
 | File                  | Ext  | Format | Width | Height | Mode |
 +---------------------------------------+------+--------+-------+
-| .\photos\PH01236U.BMP | .BMP | BMP    | 216   | 143    | P    |
-| .\photos\PH02039U.BMP | .BMP | BMP    | 216   | 143    | P    |
-| .\photos\PH02752U.BMP | .BMP | BMP    | 216   | 142    | P    |
-| .\photos\38467giu.gif | .gif | GIF    | 300   | 212    | P    |
-| .\photos\AG00004_.GIF | .GIF | GIF    | 140   | 135    | P    |
+| .\\photos\\PH01236U.BMP | .BMP | BMP    | 216   | 143    | P    |
+| .\\photos\\PH02039U.BMP | .BMP | BMP    | 216   | 143    | P    |
+| .\\photos\\PH02752U.BMP | .BMP | BMP    | 216   | 142    | P    |
+| .\\photos\38467giu.gif | .gif | GIF    | 300   | 212    | P    |
+| .\\photos\\AG00004_.GIF | .GIF | GIF    | 140   | 135    | P    |
 
 5) You will submit a screenshot of your PrettyTable
 
@@ -127,10 +132,64 @@ Submit:
 
 '''
 
+from PIL import Image
+from prettytable import PrettyTable
+import os
+
+# Scan directory function for images & displays properties in pretty table
+def scan_directory(directory_path):
+
+    # If directory is not valid print "is not valid directory"
+    if not os.path.isdir(directory_path):
+        print(f"Error: '{directory_path}' is not a valid directory.")
+        return
+
+    # Pretty table setup
+    table = PrettyTable()
+    table.field_names = ["File", "Extension", "Format", "Width", "Height", "Mode"]
+
+    # Loop through directory files, extract images data, & only add valid image data
+    try:
+        for filename in os.listdir(directory_path):
+            file_path = os.path.join(directory_path, filename)
+
+            if os.path.isdir(file_path):
+                continue
+
+            try:
+                with Image.open(file_path) as img:
+                    extension = os.path.splitext(filename)[1].upper()
+                    format_type = img.format if img.format else "Unknown"
+                    width = img.width
+                    height = img.height
+                    mode = img.mode
+                    table.add_row([file_path, extension, format_type, width, height, mode])
+
+            except Exception:
+                continue
+
+    except Exception as e:
+        print(f"Error scanning directory: {e}")
+        return
+
+    print(table)
 
 
+def main():
+
+    # Setup directory for script, project root, & default path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    default_path = os.path.join(project_root, "images")
+
+    # Waits for user input, if enter is pressed will default to images
+    directory_path = input("Enter directory path: ").strip() or default_path
+    print(f"\nScanning directory: {directory_path}\n")
+    scan_directory(directory_path)
 
 
+if __name__ == "__main__":
+    main()
 
 
         
