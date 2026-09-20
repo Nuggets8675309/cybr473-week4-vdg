@@ -133,8 +133,10 @@ Submit:
 '''
 
 from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
 from prettytable import PrettyTable
 import os
+import csv
 
 # Scan directory function for images & displays properties in pretty table
 def scan_directory(directory_path):
@@ -175,6 +177,117 @@ def scan_directory(directory_path):
     print(table)
 
 
+def get_gps_data(image_path):
+    try:
+        image = Image.open(image_path)
+        exif_data = image._getexif()
+
+        if not exif_data:
+            return None
+
+        # Find GPS info in EXIF data
+        gps_ifd = None
+        for tag, value in exif_data.items():
+            if TAGS.get(tag) == "GPSInfo":
+                gps_ifd = value
+                break
+
+        if not gps_ifd:
+            return None
+
+        # Parse GPS data & convert to decimal degrees
+        gps_info = {}
+        for tag, value in gps_ifd.items():
+            gps_tag = GPSTAGS.get(tag, tag)
+            gps_info[gps_tag] = value
+
+        # Convert GPS coordinates to decimal format
+        def convert_degrees(value):
+            d, m, s = value
+            return d + (m / 60.0) + (s / 3600.0)
+
+        latitude = None
+        longitude = None
+
+        # Extract latitude & set negative if South
+        if "GPSLatitude" in gps_info and "GPSLatitudeRef" in gps_info:
+            latitude = convert_degrees(gps_info["GPSLatitude"])
+            if gps_info["GPSLatitudeRef"] == "S":
+                latitude = -latitude
+
+        # Extract longitude & set negative if West
+        if "GPSLongitude" in gps_info and "GPSLongitudeRef" in gps_info:
+            longitude = convert_degrees(gps_info["GPSLongitude"])
+            if gps_info["GPSLongitudeRef"] == "W":
+                longitude = -longitude
+
+        if latitude and longitude:
+            return {"latitude": round(latitude, 6), "longitude": round(longitude, 6)}
+
+        return None
+
+    except Exception:
+        return None
+
+
+# Process all JPG files in directory & extract GPS data
+def process_jpg_files(directory_path, output_file):
+    # If directory is not valid print error
+    if not os.path.isdir(directory_path):
+        print(f"Error: '{directory_path}' is not a valid directory.")
+        return False
+
+    # Find all JPG files in directory
+    jpg_files = []
+    for filename in os.listdir(directory_path):
+        if filename.lower().endswith(('.jpg', '.jpeg')):
+            jpg_files.append(os.path.join(directory_path, filename))
+
+    if not jpg_files:
+        print(f"No JPG/JPEG files found in {directory_path}")
+        return False
+
+    print(f"Found {len(jpg_files)} JPG/JPEG file(s)\n")
+
+    # Loop through JPG files & extract GPS data
+    results = []
+    for jpg_file in jpg_files:
+        filename = os.path.basename(jpg_file)
+        gps = get_gps_data(jpg_file)
+
+        if gps:
+            results.append({
+                'filename': filename,
+                'latitude': gps['latitude'],
+                'longitude': gps['longitude'],
+
+            })
+            print(f"✓ {filename}: {gps['latitude']}, {gps['longitude']}")
+        else:
+            results.append({
+                'filename': filename,
+                'latitude': 'No GPS',
+                'longitude': 'No GPS',
+
+            })
+            print(f"✗ {filename}: No GPS coordinates found")
+
+    # Write results to CSV file
+    try:
+        with open(output_file, 'w', newline='') as csvfile:
+            fieldnames = ['filename', 'latitude', 'longitude']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+        print(f"\nCSV saved to: {output_file}")
+        return True
+
+    # If exception happens, print error & return false
+    except Exception as e:
+        print(f"Error writing CSV: {e}")
+        return False
+
 def main():
 
     # Setup directory for script, project root, & default path
@@ -182,11 +295,35 @@ def main():
     project_root = os.path.dirname(script_dir)
     default_path = os.path.join(project_root, "images")
 
+    # Show menu for user to choose part as to not run both at once
+    print("\n===========================================")
+    print("1. Part 1: Scan directory for images")
+    print("2. Part 2: Extract GPS from JPG files")
+    print("===========================================\n")
+    choice = input("Select option (1 or 2): ").strip()
+
     # Waits for user input, if enter is pressed will default to images
     directory_path = input("Enter directory path: ").strip() or default_path
-    print(f"\nScanning directory: {directory_path}\n")
-    scan_directory(directory_path)
 
+    # If user inputs "1" they will scan directory
+    if choice == "1":
+        print(f"\nScanning directory: {directory_path}\n")
+        scan_directory(directory_path)
+
+    # If user inputs "2" they will extract gps data from the JPGs
+    elif choice == "2":
+        docs_dir = os.path.join(project_root, "docs")
+        os.makedirs(docs_dir, exist_ok=True)
+
+        output_csv = os.path.join(docs_dir, "gps_coordinates.csv")
+
+        print(f"\nScanning directory: {directory_path}\n")
+
+        process_jpg_files(directory_path, output_csv)
+
+    # Anything other than 1-2 inputted they will get an error message after directory path input
+    else:
+        print("Invalid option. Please select 1 or 2.")
 
 if __name__ == "__main__":
     main()
