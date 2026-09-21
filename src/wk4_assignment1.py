@@ -222,7 +222,11 @@ def get_gps_data(image_path):
                 longitude = -longitude
 
         if latitude and longitude:
-            return {"latitude": round(latitude, 6), "longitude": round(longitude, 6)}
+
+            # Check if values are valid numbers (Not NaN or any strings)
+            if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
+                if latitude == latitude and longitude == longitude:
+                    return {"latitude": round(latitude, 6), "longitude": round(longitude, 6)}
 
         return None
 
@@ -237,7 +241,7 @@ def process_jpg_files(directory_path, output_file):
         print(f"Error: '{directory_path}' is not a valid directory.")
         return False
 
-    # Find all JPG files in directory
+    # Find all JPG files in directory & print how many were found if any
     jpg_files = []
     for filename in os.listdir(directory_path):
         if filename.lower().endswith(('.jpg', '.jpeg')):
@@ -255,6 +259,7 @@ def process_jpg_files(directory_path, output_file):
         filename = os.path.basename(jpg_file)
         gps = get_gps_data(jpg_file)
 
+        # If GPS data found, append to results & print with a check mark
         if gps:
             results.append({
                 'filename': filename,
@@ -263,6 +268,8 @@ def process_jpg_files(directory_path, output_file):
 
             })
             print(f"✓ {filename}: {gps['latitude']}, {gps['longitude']}")
+
+        # If no GPS data found, append to results & print with an X mark
         else:
             results.append({
                 'filename': filename,
