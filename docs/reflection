@@ -1,0 +1,74 @@
+------------------------------------------------------------------------------
+Explanation to CEO in email
+------------------------------------------------------------------------------
+ChirpyHub CEO,
+
+We have identified how fan mail was being received at your barn even though
+no public data was given towards its location. The image itself carries EXIF
+data which included the GPS coordinates of when it was taken, as we were able
+to recreate this scenario by extracting the EXIF data from your barn.jpg.
+
+As your cybersecurity team, I strongly advise that no one posts from our
+company till this gets fully resolved. We have taken action to stop all users'
+photos metadata from being uploaded to ChirpyHub by stripping its metadata
+before it gets posted. As for the photos already uploaded, we are working on
+stripping its metadata as we speak and will let you know when it gets resolved.
+
+See Technical report below for more details.
+
+Let me know if you have any further questions.
+
+- Cyber Security Team
+
+-------------------------------------------------------------------------------
+
+Technical Report
+-------------------------------------------------------------------------------
+
+What Happened?
+--------------
+
+EXIF data was found on 3 out of the 5 photos on the ChirpyHub company account.
+This data included GPS coordinates which were used in finding the location of
+the CEO's barn. EXIF data is metadata that is automatically embedded in digital
+photos once they are taken and can also contain data such as camera model and
+camera settings.
+
+Most smartphones automatically capture this data when taking pictures, but users
+can turn off the setting that allows the smartphone to retain such data. Due to
+this EXIF data, we are vulnerable on our site because our system was not
+removing the data when uploaded. This error puts every user on the site at risk
+of having their location data exposed, including our company as well.
+
+----------------------------
+How I Replicated This Issue.
+----------------------------
+
+I was able to replicate this issue by reading the JPG file using Python Imaging
+Library (PIL). Using code, I was able to use PIL to get EXIF data using
+`_getexif()`. Once I got the data, I had to convert it to decimal format so we
+could read the data normally.
+
+Once we were able to read it in decimal format, I was able to determine which
+hemisphere it was in due to latitude and longitude having negative numbers.
+Once we got the coordinates, we validated it to make sure we were getting a
+number, then stored it in a CSV file.
+
+That's when we discovered that 3 out of 5 images contained the EXIF data(Readable data)
+that gave us the coordinates of where they were taken. Once we got the coordinates,
+we used Mapmakerapp.com to pinpoint the photos' exact location. Getting this
+data was not difficult, and any coding student should be able to recreate this
+code to get the EXIF data like I did.
+
+--------------------------------------------------
+What Steps Could Be Taken to Remediate This Issue?
+--------------------------------------------------
+
+To start, ChirpyHub will begin stripping the metadata from users' photos when
+they upload them and allow the user to tag their location if they want. This
+would be the most beneficial approach as there will be no leak of private data,
+and ChirpyHub will not be liable since we won't store the data unless the user
+inputs the data themselves.
+
+As for the data already on the site, we need to create a program to locate and
+strip all images of their metadata to prevent any more leaks.
